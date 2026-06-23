@@ -256,8 +256,8 @@
             }
         };
 
-        // 线上默认底图地址
-        const defaultImageUrl = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=mobile%20loan%20app%20screenshot%20showing%20credit%20limit%20200000%20with%20date%20field%202025-07-05%20blue%20gradient%20background%20clean%20modern%20UI%20design%20Chinese%20interface&image_size=portrait_16_9';
+        // ==========关键修改：自动加载仓库同目录ces111.jpg，不再调用外部接口==========
+        const defaultImageUrl = './ces111.jpg';
 
         // 等待字体加载完成
         async function waitFontLoad() {
@@ -287,10 +287,10 @@
                 canvas.height = img.height;
                 await waitFontLoad();
                 drawCanvas();
-                showStatus('✅ 图片加载成功！');
+                showStatus('✅ 仓库底图 ces111.jpg 自动加载成功！');
             };
             img.onerror = () => {
-                showStatus('❌ 默认底图加载失败，请手动上传ces111.jpg', 'error');
+                showStatus('❌ 加载失败：检查仓库根目录是否存在 ces111.jpg', 'error');
             };
             img.src = src;
         };
@@ -384,7 +384,6 @@
                         return;
                     }
                     
-                    // 优先剪贴板，失败自动下载
                     try {
                         await navigator.clipboard.write([
                             new ClipboardItem({ 'image/png': blob })
@@ -609,7 +608,7 @@
 
         copyBtn.addEventListener('click', copyImage);
 
-        // 页面初始化加载底图
+        // 页面打开自动加载仓库内 ces111.jpg
         loadImage(defaultImageUrl);
     </script>
 </body>
