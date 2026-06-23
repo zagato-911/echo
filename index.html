@@ -7,16 +7,18 @@
     <style>
         @font-face {
             font-family: 'CHERRYDINPRO';
-            src: url('CHERRYDINPRO-MEDIUM.OTF') format('opentype');
+            src: url('./CHERRYDINPRO-MEDIUM.OTF') format('opentype');
             font-weight: normal;
             font-style: normal;
+            font-display: swap;
         }
 
         @font-face {
             font-family: 'SFHELLO';
-            src: url('sf-hello-medium.ttf') format('truetype');
+            src: url('./sf-hello-medium.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
+            font-display: swap;
         }
 
         * {
@@ -208,6 +210,7 @@
         let originalImage = null;
         let selectedItem = null;
         let canvasRect = null;
+        let fontReady = false;
 
         const textItems = {
             date: {
@@ -253,29 +256,41 @@
             }
         };
 
+        // 线上默认底图地址
         const defaultImageUrl = 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=mobile%20loan%20app%20screenshot%20showing%20credit%20limit%20200000%20with%20date%20field%202025-07-05%20blue%20gradient%20background%20clean%20modern%20UI%20design%20Chinese%20interface&image_size=portrait_16_9';
+
+        // 等待字体加载完成
+        async function waitFontLoad() {
+            if (!document.fonts) {
+                fontReady = true;
+                return;
+            }
+            try {
+                await document.fonts.ready;
+                await Promise.all([
+                    document.fonts.load("1px CHERRYDINPRO"),
+                    document.fonts.load("1px SFHELLO")
+                ]);
+                fontReady = true;
+            } catch (e) {
+                showStatus('⚠️ 字体加载异常，使用系统默认字体', 'error');
+                fontReady = true;
+            }
+        }
 
         const loadImage = (src) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
-            img.onload = () => {
+            img.onload = async () => {
                 originalImage = img;
                 canvas.width = img.width;
                 canvas.height = img.height;
-                
-                if (document.fonts && document.fonts.ready) {
-                    document.fonts.ready.then(() => {
-                        drawCanvas();
-                        showStatus('✅ 图片加载成功！');
-                    });
-                } else {
-                    drawCanvas();
-                    setTimeout(drawCanvas, 500);
-                    showStatus('✅ 图片加载成功！');
-                }
+                await waitFontLoad();
+                drawCanvas();
+                showStatus('✅ 图片加载成功！');
             };
             img.onerror = () => {
-                showStatus('❌ 图片加载失败', 'error');
+                showStatus('❌ 默认底图加载失败，请手动上传ces111.jpg', 'error');
             };
             img.src = src;
         };
@@ -285,7 +300,7 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 loadImage(event.target.result);
             };
             reader.readAsDataURL(file);
@@ -310,7 +325,7 @@
         };
 
         const drawCanvas = () => {
-            if (!originalImage) return;
+            if (!originalImage || !fontReady) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(originalImage, 0, 0);
@@ -369,6 +384,7 @@
                         return;
                     }
                     
+                    // 优先剪贴板，失败自动下载
                     try {
                         await navigator.clipboard.write([
                             new ClipboardItem({ 'image/png': blob })
@@ -379,14 +395,14 @@
                         link.download = '优惠券.png';
                         link.href = URL.createObjectURL(blob);
                         link.click();
-                        showStatus('✅ 图片已下载！');
+                        showStatus('✅ 浏览器不支持复制，已自动下载图片！');
                     }
                 }, 'image/png');
                 
                 selectedItem = prevSelected;
                 setTimeout(drawCanvas, 100);
             } catch (err) {
-                showStatus('❌ 复制失败，请右键保存图片', 'error');
+                showStatus('❌ 复制失败，请右键画布保存图片', 'error');
             }
         };
 
@@ -593,6 +609,7 @@
 
         copyBtn.addEventListener('click', copyImage);
 
+        // 页面初始化加载底图
         loadImage(defaultImageUrl);
     </script>
 </body>
